@@ -1,6 +1,6 @@
 mkdir root_child_module & cd root_child_module
 
-mkdir parent & cd parent &`
+mkdir parent & cd parent &
 set var=main.tf provider.tf variables.tf terraform.tfvars &
 for %%i in (%var%) do (
     echo "" > %%i
