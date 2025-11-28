@@ -68,10 +68,13 @@ $hashTable = @{
     plays = "chess"
     loves = "singing"
     age   = 2025 - 2000
-    worksWith = "choro choro ^_^"
 }
 $hashTable["name"]
 $hashTable["plays"]
 $hashTable["loves"]
 $hashTable["age"]
+
+# check presence of particular key 
+$hashTable.ContainsKey("name")
+$hashTable.ContainsKey("dependency")
 
