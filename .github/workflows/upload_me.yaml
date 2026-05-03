@@ -17,7 +17,7 @@ jobs:
           curl -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
           -H "Accept: application/vnd.github.v3.raw" \
           -o $GITHUB_WORKSPACE/resume.pdf \
-          -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/notes/updater/sukhbir-devops.pdf"
+          -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/sukhbir-devops.pdf"
 
       - name: Install Playwright
         run: |
