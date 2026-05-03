@@ -18,13 +18,13 @@ jobs:
           mkdir -p .github/scripts
           
           # 2. Fetch the Resume
-          curl -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
+          curl -f -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
           -H "Accept: application/vnd.github.v3.raw" \
           -o "resume.pdf" \
           -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/sukhbir-devops.pdf"
 
           # 3. Fetch the Playwright Script
-          curl -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
+          curl -f -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
           -H "Accept: application/vnd.github.v3.raw" \
           -o ".github/scripts/updater.js" \
           -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/.github/scripts/updater.js"
@@ -43,7 +43,12 @@ jobs:
         env:
           NAUKRI_COOKIES: ${{ secrets.NAUKRI_COOKIES }}
           RESUME_PATH: "./resume.pdf"
-        run: node .github/scripts/updater.js
+        run: |
+          # DEBUG: Check the first few lines of the script to see if it's real JS or a 404
+          head -n 5 .github/scripts/updater.js
+          
+          # Run the actual script
+          node .github/scripts/updater.js
 
       - name: Upload Debug Screenshots
         if: always()
