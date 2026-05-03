@@ -1,43 +1,56 @@
 const { chromium } = require('playwright');
 
 (async () => {
-    // 1. Launch Browser
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
     });
 
     try {
-        console.log('--- Step 1: Injecting Cookies ---');
-        // Parse the secret from GitHub Env
-        const cookies = JSON.parse(process.env.NAUKRI_COOKIES);
+        console.log('--- Step 1: Sanitizing and Injecting Cookies ---');
         
-        // Ensure cookies are applied to the correct domain
-        await context.addCookies(cookies);
+        // 1. Parse and sanitize cookies
+        let rawCookies = JSON.parse(process.env.NAUKRI_COOKIES);
+        
+        const sanitizedCookies = rawCookies.map(cookie => {
+            // Playwright is strict about sameSite. Fix any invalid values.
+            const validSameSite = ['Strict', 'Lax', 'None'].includes(cookie.sameSite) 
+                ? cookie.sameSite 
+                : 'Lax'; // Default to Lax if empty or invalid
+
+            return {
+                name: cookie.name,
+                value: cookie.value,
+                domain: cookie.domain.startsWith('.') ? cookie.domain : `.${cookie.domain}`,
+                path: cookie.path || '/',
+                expires: cookie.expirationDate || (Date.now() / 1000) + 3600 * 24 * 30, // Default 30 days
+                httpOnly: cookie.httpOnly || false,
+                secure: cookie.secure || false,
+                sameSite: validSameSite
+            };
+        });
+
+        await context.addCookies(sanitizedCookies);
 
         const page = await context.newPage();
 
-        console.log('--- Step 2: Navigating Directly to Profile ---');
-        // Bypass login page entirely
+        console.log('--- Step 2: Navigating to Profile ---');
         await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'networkidle' });
 
-        // Verification: Check if we are actually logged in
         const profileTitle = await page.title();
-        if (profileTitle.includes("Login")) {
-            throw new Error("Cookies expired or invalid. Script redirected to Login page.");
+        if (profileTitle.toLowerCase().includes("login")) {
+            throw new Error("Cookies expired or domain mismatch. Redirected to Login.");
         }
-        console.log('--- Logged in as:', profileTitle.split('|')[0].trim(), '---');
 
-        console.log('--- Step 3: Uploading Resume ---');
+        console.log('--- Logged in Successfully ---');
+
+        // Step 3: Upload logic...
         const fileInput = page.locator('input[type="file"]#attachCV');
-        await fileInput.waitFor({ state: 'attached', timeout: 10000 });
-        
-        // Use the path provided by GitHub Action
+        await fileInput.waitFor({ state: 'attached' });
         await fileInput.setInputFiles(process.env.RESUME_PATH);
+        await page.waitForSelector('.attachCV .update-msg, .save-msg', { state: 'visible' });
 
-        // Wait for success message
-        await page.waitForSelector('.attachCV .update-msg, .save-msg', { state: 'visible', timeout: 20000 });
-        console.log('✅ Success: Resume updated via Cookie Injection!');
+        console.log('✅ Success: Resume updated!');
 
     } catch (error) {
         console.error('❌ ERROR:', error.message);
