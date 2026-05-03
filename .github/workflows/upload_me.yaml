@@ -30,4 +30,4 @@ jobs:
           NAUKRI_PASSWORD: ${{ secrets.NAUKRI_PASSWORD }}
           # Tell the script exactly where the downloaded resume is
           RESUME_PATH: ${{ github.workspace }}/resume.pdf 
-        run: node .github/scripts/naukri_update.js
+        run: node .github/scripts/updater.js
