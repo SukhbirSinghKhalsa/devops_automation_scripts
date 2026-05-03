@@ -1,0 +1,33 @@
+name: Daily Update Yourself tryout 1
+
+on:
+  schedule:
+    - cron: '30 2-11 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-yourself:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Public Repo
+        uses: actions/checkout@v4
+
+      - name: Fetch Private Resume
+        run: |
+          curl -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
+          -H "Accept: application/vnd.github.v3.raw" \
+          -o $GITHUB_WORKSPACE/resume.pdf \
+          -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/notes/updater/sukhbir-devops.pdf"
+
+      - name: Install Playwright
+        run: |
+          npm install playwright
+          npx playwright install chromium --with-deps
+
+      - name: Run Script from Folder
+        env:
+          NAUKRI_EMAIL: ${{ secrets.NAUKRI_EMAIL }}
+          NAUKRI_PASSWORD: ${{ secrets.NAUKRI_PASSWORD }}
+          # Tell the script exactly where the downloaded resume is
+          RESUME_PATH: ${{ github.workspace }}/resume.pdf 
+        run: node .github/scripts/naukri_update.js
