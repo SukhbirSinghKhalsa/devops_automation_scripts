@@ -1,31 +1,53 @@
-name: Cookie Method
+name: lazy paezi crazy hacks 
 
 on:
   schedule:
-    - cron: '30 2 * * *' 
+    - cron: '30 2-11 * * *'
   workflow_dispatch:
 
 jobs:
-  update:
+  update-resume:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Public Repo
         uses: actions/checkout@v4
 
-      - name: Fetch Private Resume
+      - name: Fetch Files from Private Repo
         run: |
+          # 1. Create the local folder for the script
+          mkdir -p .github/scripts
+          
+          # 2. Fetch the Resume
           curl -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
           -H "Accept: application/vnd.github.v3.raw" \
           -o "resume.pdf" \
           -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/sukhbir-devops.pdf"
 
-      - name: Setup Playwright
+          # 3. Fetch the Playwright Script
+          curl -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
+          -H "Accept: application/vnd.github.v3.raw" \
+          -o ".github/scripts/updater.js" \
+          -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/.github/scripts/updater.js"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright
         run: |
           npm install playwright
           npx playwright install chromium --with-deps
 
-      - name: Run Script
+      - name: Run Update Script
         env:
           NAUKRI_COOKIES: ${{ secrets.NAUKRI_COOKIES }}
           RESUME_PATH: "./resume.pdf"
         run: node .github/scripts/updater.js
+
+      - name: Upload Debug Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: naukri-debug-artifacts
+          path: "*.png"
