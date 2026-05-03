@@ -2,35 +2,57 @@ const { chromium } = require('playwright');
 const path = require('path');
 
 (async () => {
-  // Use the path provided by the workflow, or default to local dir
+  // Use path from env or default to root
   const resumePath = process.env.RESUME_PATH || path.join(__dirname, '../../resume.pdf');
   
+  // Launching with stealth settings
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    viewport: { width: 1280, height: 720 }
+  });
+  
+  const page = await context.newPage();
 
   try {
-    console.log('Starting Naukri update workflow...');
-    await page.goto('https://www.naukri.com/nlogin/login');
-    
-    await page.fill('#usernameField', process.env.NAUKRI_EMAIL);
-    await page.fill('#passwordField', process.env.NAUKRI_PASSWORD);
-    await page.click('button[type="submit"]');
-    
-    // Wait for login to complete
-    await page.waitForURL('**/mnjuser/homepage**');
-    
-    // Navigate to profile
-    await page.goto('https://www.naukri.com/mnjuser/profile');
+    console.log('--- Step 1: Navigating to Login ---');
+    await page.goto('https://www.naukri.com/nlogin/login', { waitUntil: 'networkidle' });
 
-    // Upload using the file path passed from the runner
-    const inputFile = await page.locator('input[type="file"]#attachCV');
-    await inputFile.setInputFiles(resumePath);
+    // Flexible locators for 2026 login UI
+    const userField = page.locator('input#usernameField, input[placeholder*="Email"]');
+    const passField = page.locator('input#passwordField, input[placeholder*="Password"]');
 
-    await page.waitForSelector('.attachCV .update-msg', { state: 'visible' });
-    console.log('Success: Resume updated from ' + resumePath);
+    await userField.waitFor({ state: 'visible', timeout: 15000 });
+    
+    console.log('--- Step 2: Entering Credentials ---');
+    await userField.fill(process.env.NAUKRI_EMAIL);
+    await passField.fill(process.env.NAUKRI_PASSWORD);
+    
+    await Promise.all([
+      page.click('button[type="submit"]'),
+      page.waitForURL('**/mnjuser/homepage**', { timeout: 30000 })
+    ]);
+
+    console.log('--- Step 3: Navigating to Profile ---');
+    await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'networkidle' });
+
+    // Naukri uses a specific hidden input for CV uploads
+    const fileInput = page.locator('input[type="file"]#attachCV');
+    await fileInput.waitFor({ state: 'attached' });
+    
+    console.log('--- Step 4: Uploading Resume ---');
+    await fileInput.setInputFiles(resumePath);
+
+    // Wait for the success toast or "Uploaded on..." text to refresh
+    await page.waitForSelector('.attachCV .update-msg, .save-msg', { state: 'visible', timeout: 20000 });
+    
+    console.log('✅ Success: Resume updated successfully!');
 
   } catch (error) {
-    console.error('Workflow failed:', error);
+    console.error('❌ Workflow Failed!');
+    // Save screenshot for GitHub Actions Artifacts to debug
+    await page.screenshot({ path: 'naukri_error.png', fullPage: true });
+    console.error(error.message);
     process.exit(1);
   } finally {
     await browser.close();
