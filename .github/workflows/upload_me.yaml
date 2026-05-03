@@ -30,7 +30,7 @@ jobs:
           curl -f -H "Authorization: Bearer ${{ secrets.MY_GITHUB_PAT }}" \
                -H "Accept: application/vnd.github.raw" \
                -L "https://api.github.com/repos/SukhbirSinghKhalsa/NOTES/contents/updater.js?ref=updater" \
-               -o ".github/scripts/updater.js"
+               -o "updater.js"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,10 +48,10 @@ jobs:
           RESUME_PATH: "./resume.pdf"
         run: |
           # DEBUG: Check the first few lines of the script to see if it's real JS or a 404
-          head -n 5 .github/scripts/updater.js
+          head -n 5 updater.js
           
           # Run the actual script
-          node .github/scripts/updater.js
+          node updater.js
 
       - name: Upload Debug Screenshots
         if: always()
