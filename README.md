@@ -8,6 +8,22 @@ This repository contains small automation utilities used across Azure, Terraform
 Most scripts are designed to run locally or in a CI/CD environment.
 Always review the script logic before running on production systems.
 
+## File structure
+```bash
+|-- README.md
+|-- bash
+|   `-- Key_vault_Get_Access_Policies.bash
+|-- command_line
+|   |-- Create-Module-Terraform.cmd
+|   `-- Terraform-Pipeline.cmd
+`-- powershell
+    |-- AZ-ACA-List.ps1
+    |-- Compare-Env-ACA.ps1
+    |-- Delete-Resource-Groups.ps1
+    |-- PowerShell_Script.ps1
+    `-- TriggerADOPipelines.ps1
+```
+
 ## 📂 Scripts
 
 ### PowerShell (.ps1)
