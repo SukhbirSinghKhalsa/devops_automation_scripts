@@ -11,18 +11,23 @@ jobs:
     steps:
       - name: Checkout Public Repo
         uses: actions/checkout@v4
-
+        
+      - name: test-token
+        run: echo "Token length: ${#MY_GITHUB_PAT}"
+        env:
+          MY_GITHUB_PAT: ${{ secrets.MY_GITHUB_PAT }}
+          
       - name: Fetch Files from Private Repo
-        run: |        
-          # 1. Fetch the Resume (Assuming it is also in the root)
-          curl -f -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
-               -H "Accept: application/vnd.github.v3.raw" \
+        run: |
+          # Fetch Resume
+          curl -f -H "Authorization: Bearer ${{ secrets.MY_GITHUB_PAT }}" \
+               -H "Accept: application/vnd.github.raw" \
                -L "https://api.github.com/repos/SukhbirSinghKhalsa/NOTES/contents/sukhbir-devops.pdf?ref=updater" \
                -o "resume.pdf"
-
-          # 2. Fetch the Playwright Script (Directly from root)
-          curl -f -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
-               -H "Accept: application/vnd.github.v3.raw" \
+      
+          # Fetch Script
+          curl -f -H "Authorization: Bearer ${{ secrets.MY_GITHUB_PAT }}" \
+               -H "Accept: application/vnd.github.raw" \
                -L "https://api.github.com/repos/SukhbirSinghKhalsa/NOTES/contents/updater.js?ref=updater" \
                -o ".github/scripts/updater.js"
 
