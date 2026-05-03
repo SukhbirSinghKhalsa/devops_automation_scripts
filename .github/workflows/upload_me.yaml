@@ -13,7 +13,8 @@ jobs:
         uses: actions/checkout@v4
         
       - name: test-token
-        run: echo "Token length: ${#MY_GITHUB_PAT}"
+        run: |
+          echo "Token length: ${#MY_GITHUB_PAT}"
         env:
           MY_GITHUB_PAT: ${{ secrets.MY_GITHUB_PAT }}
           
