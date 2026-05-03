@@ -1,32 +1,31 @@
-name: Daily Update Yourself tryout 1
+name: Cookie Method
 
 on:
   schedule:
-    - cron: '30 2-11 * * *'
+    - cron: '30 2 * * *' 
   workflow_dispatch:
 
 jobs:
-  refresh:
-    runs-on: windows-latest # Using Windows Agent
+  update:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Public Repo
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Note: On Windows, use 'curl.exe' or 'Invoke-WebRequest'
       - name: Fetch Private Resume
         run: |
-          curl.exe -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" `
-          -H "Accept: application/vnd.github.v3.raw" `
-          -o resume.pdf `
+          curl -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
+          -H "Accept: application/vnd.github.v3.raw" \
+          -o "resume.pdf" \
           -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/sukhbir-devops.pdf"
-      - name: Setup Node & Playwright
+
+      - name: Setup Playwright
         run: |
           npm install playwright
-          npx playwright install chromium
+          npx playwright install chromium --with-deps
 
-      - name: Run Automation
+      - name: Run Script
         env:
-          NAUKRI_EMAIL: ${{ secrets.NAUKRI_EMAIL }}
-          NAUKRI_PASSWORD: ${{ secrets.NAUKRI_PASSWORD }}
-          RESUME_PATH: ${{ github.workspace }}\resume.pdf
+          NAUKRI_COOKIES: ${{ secrets.NAUKRI_COOKIES }}
+          RESUME_PATH: "./resume.pdf"
         run: node .github/scripts/updater.js
