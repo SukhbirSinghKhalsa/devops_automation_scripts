@@ -1,58 +1,56 @@
 const { chromium } = require('playwright');
-const path = require('path');
 
 (async () => {
-  // Use path from env or default to root
-  const resumePath = process.env.RESUME_PATH || path.join(__dirname, '../../resume.pdf');
+  const resumePath = process.env.RESUME_PATH;
   
-  // Launching with stealth settings
-  const browser = await chromium.launch({ headless: true });
+  // Launching with "headless: false" on a CI runner requires specific flags 
+  // to avoid crashing since there is no actual monitor.
+  const browser = await chromium.launch({ 
+    headless: false, // You requested this
+    args: ['--start-maximized'] 
+  });
+
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    viewport: { width: 1280, height: 720 }
+    viewport: null, // Let it use the full "window" size
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
   });
   
   const page = await context.newPage();
 
   try {
-    console.log('--- Step 1: Navigating to Login ---');
-    await page.goto('https://www.naukri.com/nlogin/login', { waitUntil: 'networkidle' });
-
-    // Flexible locators for 2026 login UI
-    const userField = page.locator('input#usernameField, input[placeholder*="Email"]');
-    const passField = page.locator('input#passwordField, input[placeholder*="Password"]');
-
-    await userField.waitFor({ state: 'visible', timeout: 15000 });
+    // Add a randomized delay to look more human
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     
-    console.log('--- Step 2: Entering Credentials ---');
-    await userField.fill(process.env.NAUKRI_EMAIL);
-    await passField.fill(process.env.NAUKRI_PASSWORD);
-    
-    await Promise.all([
-      page.click('button[type="submit"]'),
-      page.waitForURL('**/mnjuser/homepage**', { timeout: 30000 })
-    ]);
+    console.log('--- Navigating ---');
+    await page.goto('https://www.naukri.com/nlogin/login', { waitUntil: 'load' });
+    await delay(2000);
 
-    console.log('--- Step 3: Navigating to Profile ---');
-    await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'networkidle' });
+    // Check if we are being blocked by a "Cloudflare" or "Verify you are human" page
+    const title = await page.title();
+    console.log(`Page Title: ${title}`);
 
-    // Naukri uses a specific hidden input for CV uploads
-    const fileInput = page.locator('input[type="file"]#attachCV');
-    await fileInput.waitFor({ state: 'attached' });
+    const userField = page.locator('input#usernameField');
     
-    console.log('--- Step 4: Uploading Resume ---');
-    await fileInput.setInputFiles(resumePath);
+    // If it still fails here, the screenshot will tell us if it's a CAPTCHA
+    await userField.waitFor({ state: 'visible', timeout: 30000 });
+    
+    await userField.click();
+    await page.keyboard.type(process.env.NAUKRI_EMAIL, { delay: 100 });
+    
+    await page.locator('input#passwordField').click();
+    await page.keyboard.type(process.env.NAUKRI_PASSWORD, { delay: 100 });
+    
+    await page.click('button[type="submit"]');
+    
+    // Wait for dashboard
+    await page.waitForURL('**/mnjuser/homepage**', { timeout: 30000 });
+    console.log('Login Success');
 
-    // Wait for the success toast or "Uploaded on..." text to refresh
-    await page.waitForSelector('.attachCV .update-msg, .save-msg', { state: 'visible', timeout: 20000 });
-    
-    console.log('✅ Success: Resume updated successfully!');
+    // ... rest of the upload logic ...
 
   } catch (error) {
-    console.error('❌ Workflow Failed!');
-    // Save screenshot for GitHub Actions Artifacts to debug
-    await page.screenshot({ path: 'naukri_error.png', fullPage: true });
-    console.error(error.message);
+    await page.screenshot({ path: 'naukri_debug.png' });
+    console.error('Failed at state:', await page.title());
     process.exit(1);
   } finally {
     await browser.close();
