@@ -27,7 +27,7 @@ jobs:
           curl -f -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
           -H "Accept: application/vnd.github.v3.raw" \
           -o ".github/scripts/updater.js" \
-          -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/.github/workflows/scripts/updater.js"
+          -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/updater.js"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
