@@ -6,28 +6,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-yourself:
-    runs-on: ubuntu-latest
+  refresh:
+    runs-on: windows-latest # Using Windows Agent
     steps:
       - name: Checkout Public Repo
         uses: actions/checkout@v4
 
+      # Note: On Windows, use 'curl.exe' or 'Invoke-WebRequest'
       - name: Fetch Private Resume
         run: |
-          curl -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
-          -H "Accept: application/vnd.github.v3.raw" \
-          -o $GITHUB_WORKSPACE/resume.pdf \
+          curl.exe -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" `
+          -H "Accept: application/vnd.github.v3.raw" `
+          -o resume.pdf `
           -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/sukhbir-devops.pdf"
-
-      - name: Install Playwright
+      - name: Setup Node & Playwright
         run: |
           npm install playwright
-          npx playwright install chromium --with-deps
+          npx playwright install chromium
 
-      - name: Run Script from Folder
+      - name: Run Automation
         env:
           NAUKRI_EMAIL: ${{ secrets.NAUKRI_EMAIL }}
           NAUKRI_PASSWORD: ${{ secrets.NAUKRI_PASSWORD }}
-          # Tell the script exactly where the downloaded resume is
-          RESUME_PATH: ${{ github.workspace }}/resume.pdf 
+          RESUME_PATH: ${{ github.workspace }}\resume.pdf
         run: node .github/scripts/updater.js
