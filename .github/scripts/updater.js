@@ -2,88 +2,79 @@ const { chromium } = require('playwright');
 
 (async () => {
     console.log('🚀 Starting Naukri Automation...');
-
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
     });
 
     try {
-        // --- Step 1: Cookie Injection ---
         console.log('Step 1: Injecting Session Cookies...');
         let rawCookies = JSON.parse(process.env.NAUKRI_COOKIES);
+        
         const sanitizedCookies = rawCookies.map(cookie => ({
-            ...cookie,
-            sameSite: ['Strict', 'Lax', 'None'].includes(cookie.sameSite) ? cookie.sameSite : 'Lax',
-            domain: cookie.domain.startsWith('.') ? cookie.domain : `.${cookie.domain}`
+            name: cookie.name,
+            value: cookie.value,
+            // Ensure domain is broad enough for all naukri subdomains
+            domain: '.naukri.com', 
+            path: '/',
+            secure: true,
+            sameSite: 'Lax'
         }));
 
         await context.addCookies(sanitizedCookies);
         const page = await context.newPage();
 
-        // --- Step 2: Navigate to Homepage ---
-        console.log('Step 2: Navigating to Dashboard...');
-        await page.goto('https://www.naukri.com/mnjuser/homepage', { waitUntil: 'load', timeout: 60000 });
+        // 1. Visit the root domain first to "activate" the session
+        console.log('Step 2: Warming up session at root domain...');
+        await page.goto('https://www.naukri.com/', { waitUntil: 'networkidle' });
+        await page.waitForTimeout(3000);
+
+        // 2. Now navigate to the profile directly
+        console.log('Step 3: Navigating directly to Profile page...');
+        await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'load' });
         
-        // Safety Delay for SPA rendering
-        console.log('⏱️ Waiting 5 seconds for dashboard elements to load...');
+        // 3. CHECK: Are we still logged in?
+        const currentUrl = page.url();
+        console.log('Current URL:', currentUrl);
+        if (currentUrl.includes('nlogin')) {
+            throw new Error("Redirected to Login! Your cookies are likely invalid or expired.");
+        }
+
+        console.log('Step 4: Waiting for Profile UI to settle...');
+        await page.waitForTimeout(7000); // Heavy SPA load time
+
+        // 4. Locate the upload element
+        console.log('Step 5: Locating the #attachCV input...');
+        const fileInput = page.locator('input#attachCV');
+        
+        // Check if it exists before trying to scroll
+        const isExisting = await fileInput.count();
+        if (isExisting === 0) {
+            console.log('⚠️ #attachCV not found. Taking debug screenshot...');
+            await page.screenshot({ path: 'profile_not_found.png', fullPage: true });
+            
+            // Log all input IDs on the page to help debug
+            const ids = await page.evaluate(() => Array.from(document.querySelectorAll('input')).map(i => i.id));
+            console.log('Available input IDs on this page:', ids.filter(id => id));
+            
+            throw new Error("Target element #attachCV was not found on the profile page.");
+        }
+
+        console.log('Step 6: Uploading File...');
+        await fileInput.setInputFiles(process.env.RESUME_PATH);
+
+        // 5. Final Verification
         await page.waitForTimeout(5000);
-
-        // --- Step 3: Click "View Profile" ---
-        console.log('Step 3: Looking for "View Profile" link...');
-        const viewProfileBtn = page.locator('a[href="/mnjuser/profile"]:has-text("View profile")');
-        
-        if (await viewProfileBtn.count() > 0) {
-            console.log('✅ "View Profile" link found. Clicking...');
-            await viewProfileBtn.click();
-        } else {
-            console.log('⚠️ Could not find "View Profile" link. Attempting direct navigation to profile...');
-            await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'load' });
-        }
-
-        // --- Step 4: Profile Page Warmup ---
-        console.log('Step 4: Arrived at Profile page. Waiting for upload section...');
-        await page.waitForURL('**/mnjuser/profile**', { timeout: 30000 });
-        
-        // Crucial delay: Naukri profile pages often "flicker" while loading data
-        await page.waitForTimeout(5000); 
-
-        // --- Step 5: Locate and Upload ---
-        console.log('Step 5: Scrolling to find the Resume Upload section...');
-        const uploadSection = page.locator('#attachCV');
-        await uploadSection.scrollIntoViewIfNeeded();
-
-        console.log('📤 Preparing to upload file from path:', process.env.RESUME_PATH);
-        
-        // Wait for the specific input ID you provided
-        await uploadSection.waitFor({ state: 'attached', timeout: 20000 });
-        
-        // Perform the upload
-        await uploadSection.setInputFiles(process.env.RESUME_PATH);
-        console.log('⏳ Upload triggered. Waiting for Naukri to process the file...');
-
-        // --- Step 6: Success Verification ---
-        // We look for the "Update resume" button or the success toast
-        const successMsg = page.locator('.update-msg, .save-msg, text="successfully uploaded"').first();
-        
-        try {
-            await successMsg.waitFor({ state: 'visible', timeout: 30000 });
-            console.log('✅ SUCCESS: Resume updated successfully at ' + new Date().toLocaleString());
-        } catch (e) {
-            console.log('⚠️ Success message not seen, but upload was triggered. Taking final screenshot...');
-            await page.screenshot({ path: 'final_state.png', fullPage: true });
-        }
+        console.log('✅ Upload command sent. Check your profile for updates.');
+        await page.screenshot({ path: 'final_check.png' });
 
     } catch (error) {
         console.error('❌ CRITICAL ERROR:', error.message);
-        // Take a screenshot on failure to debug via GitHub Artifacts
         if (typeof page !== 'undefined') {
             await page.screenshot({ path: 'error_screenshot.png', fullPage: true });
-            console.log('📸 Error screenshot saved as error_screenshot.png');
         }
         process.exit(1);
     } finally {
-        console.log('🧹 Closing browser session...');
         await browser.close();
     }
 })();
