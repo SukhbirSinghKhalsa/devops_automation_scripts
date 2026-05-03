@@ -64,7 +64,7 @@ const { chromium } = require('playwright');
         console.log('✅ Resume Updated Successfully');
 
     } catch (error) {
-        console.error('--- ERROR CAUGHT ---');
+        console.error('--- ERROR CAUGHT ---', error);
         const currentURL = page.url();
         console.log('Final URL before failure:', currentURL);
         
