@@ -13,21 +13,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Fetch Files from Private Repo
-        run: |
-          # 1. Create the local folder for the script
-          mkdir -p .github/scripts
-          
-          # 2. Fetch the Resume
+        run: |        
+          # 1. Fetch the Resume (Assuming it is also in the root)
           curl -f -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
-          -H "Accept: application/vnd.github.v3.raw" \
-          -o "resume.pdf" \
-          -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/sukhbir-devops.pdf"
+               -H "Accept: application/vnd.github.v3.raw" \
+               -L "https://api.github.com/repos/SukhbirSinghKhalsa/NOTES/contents/sukhbir-devops.pdf?ref=updater" \
+               -o "resume.pdf"
 
-          # 3. Fetch the Playwright Script
+          # 2. Fetch the Playwright Script (Directly from root)
           curl -f -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" \
-          -H "Accept: application/vnd.github.v3.raw" \
-          -o ".github/scripts/updater.js" \
-          -L "https://raw.githubusercontent.com/SukhbirSinghKhalsa/NOTES/updater/updater.js"
+               -H "Accept: application/vnd.github.v3.raw" \
+               -L "https://api.github.com/repos/SukhbirSinghKhalsa/NOTES/contents/updater.js?ref=updater" \
+               -o ".github/scripts/updater.js"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
