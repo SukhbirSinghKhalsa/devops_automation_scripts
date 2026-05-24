@@ -63,5 +63,22 @@ Always review the script logic before running on production systems.
 - Azure CLI (`az`) or Az PowerShell module  
 - Terraform  
 - Azure DevOps PAT (for pipeline scripts)  
-- Windows environment f
+- Windows environment
+
+## Bash Vs Powershell
+
+| Task                    | Bash                     | PowerShell                                |
+| ----------------------- | ------------------------ | ----------------------------------------- |
+| Print working directory | `pwd`                    | `Get-Location`                            |
+| Clear screen            | `clear`                  | `cls`                                     |
+| Exit terminal           | `exit`                   | `exit`                                    |
+| List files/directories  | `ls`                     | `dir`                                     |
+| Create empty file       | `touch file.txt`         | `New-Item file.txt`                       |
+| Open/edit file          | `nano file.txt`          | `notepad file.txt`                        |
+| Copy files/directories  | `cp file.txt backup.txt` | `Copy-Item file.txt backup.txt`           |
+| Move/rename files       | `mv old.txt new.txt`     | `Move-Item old.txt new.txt`               |
+| Remove file             | `rm file.txt`            | `Remove-Item file.txt`                    |
+| Create directory        | `mkdir new_folder`       | `New-Item -ItemType Directory new_folder` |
+| Remove empty directory  | `rmdir empty_folder`     | `Remove-Item empty_folder`                |
+| Force remove directory  | `rm -rf folder`          | `Remove-Item folder -Recurse -Force`      |
 
